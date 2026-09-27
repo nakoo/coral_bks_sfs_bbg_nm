@@ -107,7 +107,8 @@ jobs:
 
       - name: Clone NonGKI SuSFS Patches
         run: |
-          git clone --depth=1 https://github.com/JackA1ltman/NonGKI_Kernel_Build_2nd.git nongki_build
+          #git clone --depth=1 https://github.com/JackA1ltman/NonGKI_Kernel_Build_2nd.git nongki_build
+          git clone --depth=1 https://github.com/nakoo/NonGKI_Kernel_Build_2nd.git -b fix nongki_build
 
       - name: Apply SuSFS Kernel Patches
         run: |
