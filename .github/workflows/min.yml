@@ -107,8 +107,7 @@ jobs:
 
       - name: Clone NonGKI SuSFS Patches
         run: |
-          #git clone --depth=1 https://github.com/JackA1ltman/NonGKI_Kernel_Build_2nd.git nongki_build
-          git clone --depth=1 https://github.com/nakoo/NonGKI_Kernel_Build_2nd.git -b fix nongki_build
+          git clone https://github.com/JackA1ltman/NonGKI_Kernel_Build_2nd.git nongki_build
 
       - name: Apply SuSFS Kernel Patches
         run: |
@@ -134,7 +133,7 @@ jobs:
         run: |
           cd kernel_src
           echo "=== Adding ReSukiSU (Main Branch for v4.2.0-rc1) ==="
-          git clone --depth=1 https://github.com/ReSukiSU/ReSukiSU.git
+          git clone https://github.com/ReSukiSU/ReSukiSU.git
 
           # Symlink the kernel driver
           cd drivers
