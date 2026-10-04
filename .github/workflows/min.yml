@@ -6,12 +6,9 @@ on:
   workflow_dispatch:
     inputs:
       base_img_url:
-        description: "Custom boot.img URL (leave empty to use default)"
+        description: "Custom boot.img URL (leave empty to fetch latest from LineageOS)"
         required: false
         type: string
-
-env:
-  DEFAULT_BASE_IMG_URL: "https://mirrorbits.lineageos.org/full/coral/20260925/boot.img"
 
 jobs:
   build-resukisu-coral-4-14:
@@ -25,17 +22,23 @@ jobs:
 
       - name: Install Build Dependencies
         run: |
+          echo "=== Installing build dependencies ==="
           sudo apt update
           sudo apt install -y build-essential flex bison libssl-dev libelf-dev \
-            libncurses5-dev make zip git curl python3 bc cpio lz4 patch gawk
+            libncurses5-dev make zip git curl python3 bc cpio lz4 patch gawk jq
+          echo "✅ Build dependencies installed."
 
       - name: Clone AOSP mkbootimg Tools
         run: |
+          echo "=== Cloning mkbootimg tools ==="
           git clone https://android.googlesource.com/platform/system/tools/mkbootimg mkbootimg_tools
+          echo "✅ mkbootimg tools cloned."
 
       - name: Clone LineageOS 4.14 Kernel Source
         run: |
+          echo "=== Cloning LineageOS 4.14 kernel source ==="
           git clone --depth=1 https://github.com/LineageOS/android_kernel_google_msm-4.14 -b lineage-23.2 kernel_src
+          echo "✅ Kernel source cloned."
 
       - name: Apply ptrace_stop Backport Patch
         run: |
@@ -61,7 +64,21 @@ jobs:
 
       - name: Download Base boot.img
         run: |
-          TARGET_URL="${{ inputs.base_img_url || env.DEFAULT_BASE_IMG_URL }}"
+          TARGET_URL="${{ inputs.base_img_url }}"
+          if [ -z "$TARGET_URL" ]; then
+            echo "=== Fetching latest boot.img URL from LineageOS API ==="
+            API_RESP=$(curl -fSL \
+              --retry 5 \
+              --retry-delay 5 \
+              --retry-all-errors \
+              --connect-timeout 30 \
+              --max-time 600 \
+              "https://download.lineageos.org/api/v2/devices/coral/builds")
+            TARGET_URL=$(echo "$API_RESP" | jq -r 'sort_by(.datetime) | last | .files[] | select(.filename=="boot.img") | .url')
+          fi
+
+          test -n "$TARGET_URL" && [ "$TARGET_URL" != "null" ] || { echo "::error::Failed to resolve latest boot.img URL from LineageOS API"; exit 1; }
+
           echo "=== Downloading base boot.img from: $TARGET_URL ==="
           curl -fSL \
             --retry 5 \
@@ -71,7 +88,10 @@ jobs:
             --max-time 600 \
             -o base.img \
             "$TARGET_URL"
+          
+          test -s base.img || { echo "::error::Downloaded base.img is empty or missing"; exit 1; }
           ls -la base.img
+          echo "✅ Base boot.img downloaded successfully."
 
       - name: Extract KERNELRELEASE and mkbootimg args from Base boot.img
         run: |
@@ -83,9 +103,9 @@ jobs:
             --format mkbootimg > mkbootimg_args
           lz4 -dc unpacked/kernel > /tmp/base_Image
           STOCK_RELEASE=$(strings /tmp/base_Image | grep -E "Linux version [0-9]" | head -n 1 | awk '{print $3}')
-          echo "Extracted Stock KERNELRELEASE: $STOCK_RELEASE"
           test -n "$STOCK_RELEASE" || { echo "::error::Failed to extract vermagic from base.img"; exit 1; }
           echo "STOCK_RELEASE=$STOCK_RELEASE" >> $GITHUB_ENV
+          echo "✅ Extracted Stock KERNELRELEASE: $STOCK_RELEASE"
 
       - name: Setup Clang r416183b
         run: |
@@ -104,10 +124,13 @@ jobs:
           test -x clang/bin/clang || { echo "::error::clang archive was invalid or empty"; exit 1; }
           echo "$PWD/clang/bin" >> "$GITHUB_PATH"
           clang/bin/clang --version
+          echo "✅ Clang setup completed."
 
       - name: Clone NonGKI SuSFS Patches
         run: |
+          echo "=== Cloning NonGKI SuSFS patches ==="
           git clone https://github.com/JackA1ltman/NonGKI_Kernel_Build_2nd.git nongki_build
+          echo "✅ NonGKI SuSFS patches cloned."
 
       - name: Apply SuSFS Kernel Patches
         run: |
@@ -127,7 +150,7 @@ jobs:
             find . -name "*.rej" -exec cat {} +
             exit 1
           fi
-          echo "✅ SuSFS kernel patch applied."
+          echo "✅ SuSFS kernel patch applied cleanly with 0 rejects."
 
       - name: Setup ReSukiSU Driver
         run: |
@@ -143,6 +166,7 @@ jobs:
           # Register in Makefile and Kconfig
           grep -q "kernelsu" drivers/Makefile || printf "\nobj-\$(CONFIG_KSU) += kernelsu/\n" >> drivers/Makefile
           grep -q "source \"drivers/kernelsu/Kconfig\"" drivers/Kconfig || sed -i "/endmenu/i\source \"drivers/kernelsu/Kconfig\"" drivers/Kconfig
+          echo "✅ ReSukiSU driver setup completed."
 
       - name: Apply SuSFS Inline Hooks
         run: |
@@ -186,6 +210,7 @@ jobs:
           cd kernel_src
           echo "=== Allowing vendor modules to load despite compiler CRC difference ==="
           sed -i '/bad_version:/,/return 0;/s/return 0;/return 1;/' kernel/module.c
+          echo "✅ Module CRC bypass applied."
 
       - name: Fix Driver Include Paths
         run: |
@@ -203,6 +228,7 @@ jobs:
 
           # 4. Fix relative angled includes (<../...>) across all drivers safely
           grep -rlE '#include <\.\./' drivers/ | xargs -r sed -i -E 's|#include <(\.\./[^>]+)>|#include "\1"|g'
+          echo "✅ Driver include paths fixed."
 
       - name: Configure ReSukiSU + SuSFS + Baseband-guard + NoMount Kernel
         run: |
@@ -266,6 +292,7 @@ jobs:
 
           echo "=== Verifying SuSFS, Baseband-guard, and NoMount config in final .config ==="
           grep -E "CONFIG_NOMOUNT|CONFIG_KSU|CONFIG_KSU_SUSFS|CONFIG_TMPFS_XATTR|CONFIG_BBG|CONFIG_LSM" .config
+          echo "✅ Kernel configuration completed."
 
       - name: Build ReSukiSU + SuSFS + Baseband-guard + NoMount Kernel Binary (Image.lz4)
         run: |
@@ -282,28 +309,28 @@ jobs:
           if strings vmlinux | grep -i -q "kernelsu"; then
             echo "✅ ReSukiSU symbols/strings found in vmlinux!"
           else
-            echo "❌ ERROR: No KernelSU strings found in the compiled binary!"
+            echo "::error::No KernelSU strings found in the compiled binary!"
             exit 1
           fi
 
           if strings vmlinux | grep -i -q "susfs"; then
             echo "✅ SuSFS symbols/strings found in vmlinux!"
           else
-            echo "❌ ERROR: No SuSFS strings found in the compiled binary!"
+            echo "::error::No SuSFS strings found in the compiled binary!"
             exit 1
           fi
 
           if strings vmlinux | grep -i -q "baseband_guard"; then
             echo "✅ Baseband-guard symbols/strings found in vmlinux!"
           else
-            echo "❌ ERROR: No Baseband-guard strings found in the compiled binary!"
+            echo "::error::No Baseband-guard strings found in the compiled binary!"
             exit 1
           fi
 
           if strings vmlinux | grep -i -q "nomount"; then
             echo "✅ NoMount symbols/strings found in vmlinux!"
           else
-            echo "❌ ERROR: No NoMount strings found in the compiled binary!"
+            echo "::error::No NoMount strings found in the compiled binary!"
             exit 1
           fi
 
@@ -323,7 +350,7 @@ jobs:
           eval "python3 mkbootimg_tools/mkbootimg.py $NEW_ARGS --output out_artifacts/boot.img"
 
           test -f out_artifacts/boot.img || { echo "::error::Failed to create repacked boot.img"; exit 1; }
-          echo "Successfully created ReSukiSU + SuSFS boot.img"
+          echo "✅ ReSukiSU + SuSFS boot.img repacked successfully."
 
       - name: Upload ReSukiSU + SuSFS boot.img Artifact
         uses: actions/upload-artifact@v7
