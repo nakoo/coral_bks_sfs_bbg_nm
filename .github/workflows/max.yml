@@ -35,7 +35,7 @@ jobs:
       - name: Clone LineageOS 4.14 Kernel Source
         run: |
           echo "=== Cloning LineageOS 4.14 kernel source ==="
-          git clone --depth=1 https://github.com/LineageOS/android_kernel_google_msm-4.14 -b lineage-23.2 kernel_src
+          git clone --depth=1 https://github.com/LineageOS/android_kernel_google_msm-4.14 -b lineage-24.0 kernel_src
           echo "✅ Kernel source cloned."
 
       - name: Apply ptrace_stop Backport Patch
