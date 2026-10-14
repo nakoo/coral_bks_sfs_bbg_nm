@@ -11,7 +11,7 @@ on:
         type: string
 
 jobs:
-  build-resukisu-coral-4-14:
+  build-bakasu-coral-4-14:
     runs-on: ubuntu-latest
 
     steps:
@@ -355,6 +355,6 @@ jobs:
       - name: Upload BakaSU + SuSFS boot.img Artifact
         uses: actions/upload-artifact@v7
         with:
-          name: coral-resukisu-susfs-bbg-nomount
+          name: coral-bakasu-susfs-bbg-nomount
           path: out_artifacts/*
           if-no-files-found: error
