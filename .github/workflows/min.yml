@@ -156,7 +156,7 @@ jobs:
         run: |
           cd kernel_src
           echo "=== Adding BakaSU (Main Branch for v4.2.0-rc1) ==="
-          git clone https://github.com/Baka-SU/BakaSU.git
+          git clone https://github.com/Baka-SU/BakaSU.git -b sync-susfs
 
           # Symlink the kernel driver
           cd drivers
