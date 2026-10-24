@@ -156,7 +156,7 @@ jobs:
         run: |
           cd kernel_src
           echo "=== Adding BakaSU ==="
-          git clone https://github.com/nakoo/BakaSU.git -b main
+          git clone https://github.com/Baka-SU/BakaSU.git -b main
 
           # Symlink the kernel driver
           cd drivers
