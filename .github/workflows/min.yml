@@ -130,7 +130,7 @@ jobs:
         run: |
           echo "=== Cloning NonGKI SuSFS patches ==="
           #git clone https://github.com/JackA1ltman/NonGKI_Kernel_Build_2nd.git nongki_build
-          git clone https://github.com/nakoo/NonGKI_Kernel_Build_2nd.git uid_filter_unterminated
+          git clone https://github.com/nakoo/NonGKI_Kernel_Build_2nd.git -b uid_filter_unterminated nongki_build
           echo "✅ NonGKI SuSFS patches cloned."
 
       - name: Apply SuSFS Kernel Patches
