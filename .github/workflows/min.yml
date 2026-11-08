@@ -290,6 +290,13 @@ jobs:
             LLVM=1 LLVM_IAS=1 \
             olddefconfig
 
+          echo "=== Pre-installing UAPI headers to avoid sub-make race in BakaSU preinit runner ==="
+          make -j"$(nproc)" ARCH=arm64 \
+            CLANG_TRIPLE=aarch64-linux-gnu- \
+            CROSS_COMPILE=aarch64-linux-gnu- \
+            LLVM=1 LLVM_IAS=1 \
+            headers_install INSTALL_HDR_PATH="$(pwd)/usr"
+
           echo "=== Verifying SuSFS, Baseband-guard, and NoMount config in final .config ==="
           grep -E "CONFIG_NOMOUNT|CONFIG_KSU|CONFIG_KSU_SUSFS|CONFIG_TMPFS_XATTR|CONFIG_BBG|CONFIG_LSM" .config
           echo "✅ Kernel configuration completed."
