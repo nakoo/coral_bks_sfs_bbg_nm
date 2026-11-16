@@ -338,7 +338,7 @@ jobs:
       - name: Build BakaSU + SuSFS + Baseband-guard + NoMount Kernel Binary (Image.lz4)
         run: |
           cd kernel_src
-          ( while true; do date; free -m; ps -eo pid,rss,comm --sort=-rss | head -n 4; sleep 30; done ) &
+          ( while true; do date; free -m; zramctl; ps -eo pid,rss,comm --sort=-rss | head -n 4; sleep 30; done ) &
           MON_PID=$!
           trap 'kill $MON_PID 2>/dev/null' EXIT
           echo "=== Compiling BakaSU + SuSFS + Baseband-guard + NoMount Image.lz4 with pure LLVM ==="
