@@ -20,6 +20,9 @@ jobs:
         with:
           swapfile-size: 30GiB
 
+      - name: Start resource monitor
+        run: nohup bash -c 'while true; do date; free -m; df -h /; sleep 30; done' > /tmp/mon.log 2>&1 &
+
       - name: Install Build Dependencies
         run: |
           echo "=== Installing build dependencies ==="
