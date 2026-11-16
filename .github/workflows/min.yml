@@ -20,6 +20,20 @@ jobs:
         with:
           swapfile-size: 30GiB
 
+      - name: Setup zram swap
+        run: |
+          if sudo modprobe zram; then
+            ZDEV=$(sudo zramctl --find --size 12G --algorithm zstd || sudo zramctl --find --size 12G)
+            echo 6G | sudo tee "/sys/block/$(basename "$ZDEV")/mem_limit"
+            sudo mkswap "$ZDEV"
+            sudo swapon -p 100 "$ZDEV"
+            sudo sysctl vm.swappiness=100
+            swapon --show
+            zramctl
+          else
+            echo "::warning::zram module not available on this runner, skipping"
+          fi
+
       - name: Show swap config
         run: |
           swapon --show
