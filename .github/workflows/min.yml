@@ -20,6 +20,12 @@ jobs:
         with:
           swapfile-size: 30GiB
 
+      - name: Show swap config
+        run: |
+          swapon --show
+          cat /proc/swaps
+          sysctl vm.swappiness
+
       - name: Install Build Dependencies
         run: |
           echo "=== Installing build dependencies ==="
