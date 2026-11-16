@@ -287,7 +287,8 @@ jobs:
             -e KALLSYMS \
             -e KALLSYMS_ALL \
             -d BUILD_ARM64_APPENDED_DTB_IMAGE \
-            -d BUILD_ARM64_DT_OVERLAY
+            -d BUILD_ARM64_DT_OVERLAY \
+            -e THINLTO
 
           # Baseband-guard configuration
           echo "=== Setting Baseband-guard kernel options ==="
@@ -314,12 +315,7 @@ jobs:
             LLVM=1 LLVM_IAS=1 \
             olddefconfig
 
-          #echo "=== Pre-installing UAPI headers to avoid sub-make race in BakaSU preinit runner ==="
-          #make -j"$(nproc)" ARCH=arm64 \
-          #  CLANG_TRIPLE=aarch64-linux-gnu- \
-          #  CROSS_COMPILE=aarch64-linux-gnu- \
-          #  LLVM=1 LLVM_IAS=1 \
-          #  headers_install INSTALL_HDR_PATH="$(pwd)/usr"
+          grep -q "^CONFIG_THINLTO=y" .config || { echo "::error::THINLTO did not stick after olddefconfig"; grep -nE "CONFIG_(LTO|THINLTO|CFI)" .config; exit 1; }
 
           echo "=== Verifying SuSFS, Baseband-guard, and NoMount config in final .config ==="
           grep -E "CONFIG_NOMOUNT|CONFIG_KSU|CONFIG_KSU_SUSFS|CONFIG_TMPFS_XATTR|CONFIG_BBG|CONFIG_LSM|CONFIG_FGETPRIORITY|CONFIG_LTO|CONFIG_THINLTO|CONFIG_CFI|CONFIG_SHADOW_CALL_STACK" .config
