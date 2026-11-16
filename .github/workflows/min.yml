@@ -322,7 +322,7 @@ jobs:
           #  headers_install INSTALL_HDR_PATH="$(pwd)/usr"
 
           echo "=== Verifying SuSFS, Baseband-guard, and NoMount config in final .config ==="
-          grep -E "CONFIG_NOMOUNT|CONFIG_KSU|CONFIG_KSU_SUSFS|CONFIG_TMPFS_XATTR|CONFIG_BBG|CONFIG_LSM|CONFIG_FGETPRIORITY" .config
+          grep -E "CONFIG_NOMOUNT|CONFIG_KSU|CONFIG_KSU_SUSFS|CONFIG_TMPFS_XATTR|CONFIG_BBG|CONFIG_LSM|CONFIG_FGETPRIORITY|CONFIG_LTO|CONFIG_THINLTO|CONFIG_CFI|CONFIG_SHADOW_CALL_STACK" .config
           echo "✅ Kernel configuration completed."
 
       - name: Build BakaSU + SuSFS + Baseband-guard + NoMount Kernel Binary (Image.lz4)
