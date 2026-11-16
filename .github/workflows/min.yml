@@ -205,6 +205,22 @@ jobs:
             https://raw.githubusercontent.com/maxsteeel/nomount/refs/heads/master/kernel/setup.sh | bash -s dev
           echo "✅ NoMount setup completed."
 
+      - name: Setup fgetpriority Driver
+        run: |
+          cd kernel_src
+          echo "=== Adding fgetpriority ==="
+          git clone --depth=1 https://github.com/aerath-stuff/fgetpriority.git
+
+          # Symlink the kernel driver
+          cd drivers
+          ln -sf ../fgetpriority/kernel fgetpriority
+          cd ..
+
+          # Register in Makefile and Kconfig
+          grep -q "fgetpriority" drivers/Makefile || printf "\nobj-\$(CONFIG_FGETPRIORITY) += fgetpriority/\n" >> drivers/Makefile
+          grep -q "source \"drivers/fgetpriority/Kconfig\"" drivers/Kconfig || sed -i "/endmenu/i\source \"drivers/fgetpriority/Kconfig\"" drivers/Kconfig
+          echo "✅ fgetpriority driver setup completed."
+
       - name: Bypass Vendor Module CRC Check (Fix Vendor Module Loading)
         run: |
           cd kernel_src
@@ -244,6 +260,7 @@ jobs:
           # SuSFS configuration
           ./scripts/config --file .config \
             -e NOMOUNT \
+            -e FGETPRIORITY \
             -e KSU \
             -d KSU_WITH_KPROBES \
             -d KSU_MANUAL_HOOK \
@@ -298,7 +315,7 @@ jobs:
             headers_install INSTALL_HDR_PATH="$(pwd)/usr"
 
           echo "=== Verifying SuSFS, Baseband-guard, and NoMount config in final .config ==="
-          grep -E "CONFIG_NOMOUNT|CONFIG_KSU|CONFIG_KSU_SUSFS|CONFIG_TMPFS_XATTR|CONFIG_BBG|CONFIG_LSM" .config
+          grep -E "CONFIG_NOMOUNT|CONFIG_KSU|CONFIG_KSU_SUSFS|CONFIG_TMPFS_XATTR|CONFIG_BBG|CONFIG_LSM|CONFIG_FGETPRIORITY" .config
           echo "✅ Kernel configuration completed."
 
       - name: Build BakaSU + SuSFS + Baseband-guard + NoMount Kernel Binary (Image.lz4)
@@ -338,6 +355,13 @@ jobs:
             echo "✅ NoMount symbols/strings found in vmlinux!"
           else
             echo "::error::No NoMount strings found in the compiled binary!"
+            exit 1
+          fi
+
+          if strings vmlinux | grep -i -q "fgetpriority"; then
+            echo "✅ fgetpriority symbols/strings found in vmlinux!"
+          else
+            echo "::error::No fgetpriority strings found in the compiled binary!"
             exit 1
           fi
 
