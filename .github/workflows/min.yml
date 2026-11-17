@@ -17,8 +17,6 @@ jobs:
     steps:
       - name: Free runner space
         uses: justinthelaw/maximize-github-runner-space@v0.12.4
-        with:
-          swapfile-size: 30GiB
 
       - name: Setup zram swap
         run: |
@@ -33,12 +31,6 @@ jobs:
           else
             echo "::warning::zram module not available on this runner, skipping"
           fi
-
-      - name: Show swap config
-        run: |
-          swapon --show
-          cat /proc/swaps
-          sysctl vm.swappiness
 
       - name: Install Build Dependencies
         run: |
